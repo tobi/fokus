@@ -1,0 +1,30 @@
+{
+
+    "manifest_version": 2,
+    "name": "Fokus",
+    "version": "1.1",
+
+    "browser_specific_settings": {
+      "gecko": {
+        "id": "{738041f6-fdc8-4cfd-ab12-412ea748ca60}"
+      }
+    },
+  
+    "description": "Allows quick banning of websites.",
+  
+    "icons": {
+      "48": "icons/icon_on.png"
+    },
+
+    "browser_action": {
+        "default_icon": "icons/icon_on.png",
+        "default_title": "Beastify",
+        "default_popup": "popup/add.html"
+    },
+    
+    "background": {
+        "scripts": [ "fokus.js" ]
+    },
+    
+    "permissions": ["activeTab", "proxy", "storage"]
+  }

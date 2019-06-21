@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8">
+    <style>
+    html, body {
+     width: 180px;
+     font-size: 11pt;
+     font-family: Arial, Helvetica, sans-serif;
+     background: #fdfdfd;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .button {
+      margin: 3% auto;
+      padding: 4px;
+      text-align: center;
+      font-size: 1.5em;
+      cursor: pointer;
+    }
+
+    .host:hover {
+      background-color: #CFF2F2;
+    }
+
+    .host {
+      background-color: #E5F2F2;
+    }
+
+    .reset {
+      background-color: #FBFBC9;
+    }
+
+    .reset:hover {
+      background-color: #EAEA9D;
+    }
+    </style>
+  </head>
+<body>
+  <div>Status: <a href="#" id='status'>{off?}</a></div>
+  <hr/>
+  <div id="popup-content">
+    {empty?}
+  </div>
+  <hr/>
+  <div id="error-content" class="hidden">
+    <p>Can't beastify this web page.</p><p>Try a different page.</p>
+  </div>
+
+  <div id="add">
+    Add: <a href="#" id="current">{empty?}</a>
+  </div>
+  
+  <script src="add.js"></script>
+</body>
+
+</html>
