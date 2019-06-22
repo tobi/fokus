@@ -14,14 +14,19 @@ const proxyScriptURL = "proxy.js";
 browser.proxy.register(proxyScriptURL);
 
 browser.storage.onChanged.addListener((newSettings) => {
-    if (newSettings.blockedHosts) {
+    if ('blockedHosts' in newSettings) {
         console.log("Forwarding blockedHosts");
         browser.runtime.sendMessage({ blockedHosts: newSettings.blockedHosts.newValue }, { toProxyScript: true });
     }
 
-    if (newSettings.active) {
+    if ('active' in newSettings) {
         console.log("Forwarding active:", newSettings.active.newValue);
         browser.runtime.sendMessage({ active: newSettings.active.newValue }, { toProxyScript: true });
+
+
+        newSettings.active.newValue ? 
+            browser.browserAction.setIcon({path: "icons/on.svg"}) :
+            browser.browserAction.setIcon({path: "icons/off.svg"});
     }
 });
 

@@ -13,12 +13,13 @@
     "description": "Allows quick banning of websites.",
   
     "icons": {
-      "48": "icons/icon_on.png"
+      "48": "icons/off.svg",
+      "96": "icons/off96.svg"      
     },
 
     "browser_action": {
-        "default_icon": "icons/icon_on.png",
-        "default_title": "Beastify",
+        "default_icon": "icons/off.svg",
+        "default_title": "Fokus",
         "default_popup": "popup/add.html"
     },
     
