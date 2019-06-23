@@ -30,7 +30,9 @@ function add(host) {
 function refreshContent() {
     browser.storage.sync.get().then((storedSettings) => {
         var content = document.getElementById('popup-content');
-        content.innerHTML = '';
+        while (content.firstChild) {
+            content.removeChild(content.firstChild);
+        }
 
         storedSettings.blockedHosts.forEach( (_host) => {
 
@@ -53,7 +55,10 @@ function refreshActive() {
     browser.storage.local.get().then((storedSettings) => {        
         var status = !!storedSettings.active;
         var a = document.getElementById('status')
-        a.innerHTML = status ? "ON" : "OFF";
+        while (a.firstChild) {
+            a.removeChild(a.firstChild);
+        }
+        a.appendChild( document.createTextNode(status ? "ON" : "OFF"));
         a.onclick = toggleActive;
     });
 }
@@ -62,7 +67,10 @@ function refreshCurrent() {
     browser.tabs.query({active: true, currentWindow: true}, function(tabs) {
         currentHost = new URL(tabs[0].url).host;
         var a = document.getElementById('current')
-        a.innerHTML = currentHost;    
+        while (a.firstChild) {
+            a.removeChild(a.firstChild);
+        }
+        a.appendChild( document.createTextNode(currentHost) );
         a.onclick = (e) => {
             add(currentHost);
         };

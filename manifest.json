@@ -14,7 +14,7 @@
   
     "icons": {
       "48": "icons/off.svg",
-      "96": "icons/off96.svg"      
+      "96": "icons/off.svg"      
     },
 
     "browser_action": {
