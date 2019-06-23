@@ -26,8 +26,6 @@ browser.runtime.onMessage.addListener((message) => {
 // required PAC function that will be called to determine
 // if a proxy should be used.
 function FindProxyForURL(url, host) {
-  browser.runtime.sendMessage(`Proxy-blocker: currentlyactive:${active}`);
-
   if (!active) {
     return allow;
   }
