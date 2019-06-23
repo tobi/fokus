@@ -5,9 +5,15 @@ Simple Web Extension (Firefox, Chrome) that does nothing other than allowing you
 # Install 
 
 Option1) 
-Use temporary install method: https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Temporary_Installation_in_Firefox
+* Use temporary install method: about:debugging
+* Point it at manifest.json
+
+More here: https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Temporary_Installation_in_Firefox
 
 Option2)
 
-   make
+    make
 
+Option3)
+
+Install at https://addons.mozilla.org/en-CA/firefox/addon/fokus-time/
