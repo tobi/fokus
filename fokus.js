@@ -1,8 +1,7 @@
 defaultSettings = {
     "blockedHosts": [
         "twitter.com",
-        'example.com',
-        'news.ycombinator.com',
+        'ycombinator.com',
         'techmeme.com',
         'facebook.com',
         'reddit.com',
@@ -35,14 +34,11 @@ browser.storage.onChanged.addListener((newSettings) => {
 function handleInit() {
 
     browser.storage.sync.get().then((storedSettings) => {
-        // if there are stored settings, update the proxy with them...
         if (storedSettings.blockedHosts) {
             browser.runtime.sendMessage(storedSettings, { toProxyScript: true });
-            // ...otherwise, initialize storage with the default values
         } else {
             browser.storage.sync.set(defaultSettings);
         }
-
     }).catch(() => {
         console.log("Error retrieving stored settings");
     });
@@ -51,12 +47,7 @@ function handleInit() {
         if (storedSettings.active) {
             browser.runtime.sendMessage(storedSettings, { toProxyScript: true });
         }
-    }).catch(() => {
-        console.log("Error retrieving stored settings");
     });
-
-
-
 }
 
 function handleMessage(message, sender) {
