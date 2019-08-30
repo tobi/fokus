@@ -39,39 +39,20 @@
       background-color: #EAEA9D;
     }
     </style>
+
   </head>
 <body>
 
   <banned-list items=""></banned-list>
 
-
-  <template id="bannedList">
-    <ul></ul>
-  </template>
-
-  <template id="bannedListItem">
-    <li><a href="#">URL</a></li>
-  </template>
-
-  <div>Status: <a href="#" id='status'>{off?}</a></div>
-  <hr/>
-
-  <hr/>
-  <div id="popup-content">
-    {empty?}
-  </div>
-  <hr/>
-  <div id="error-content" class="hidden">
-    <p>Can't beastify this web page.</p><p>Try a different page.</p>
-  </div>
-
-  <div id="add">
-    Add: <a href="#" id="current">{empty?}</a>
-  </div>
-  
-  <script src="add.js"></script>
-  <script src="components.js"></script>
 </body>
 
 </html>
 
+<script src="../components.js"></script>
+
+<script>
+
+  document.querySelector("banned-list").setAttribute("items", "www.twitter.com www.instagram.com www.youtube.com")
+
+</script>

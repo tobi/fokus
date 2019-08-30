@@ -29,25 +29,7 @@ function add(host) {
 
 function refreshContent() {
     browser.storage.sync.get().then((storedSettings) => {
-        var content = document.getElementById('popup-content');
-        while (content.firstChild) {
-            content.removeChild(content.firstChild);
-        }
-
-        storedSettings.blockedHosts.forEach( (_host) => {
-
-            var a = document.createElement("a")
-            a.onclick = (e) => {
-                remove(_host);
-                e.preventDefault();
-            }
-            a.href = '#';
-            a.appendChild(document.createTextNode(_host));
-
-            var li = document.createElement("li");
-            li.appendChild(a);
-            content.appendChild( li );
-        });
+        document.querySelector("banned-list").setAttribute( "items",  storedSettings.blockedHosts.join(" "))
     });
 }
 
@@ -87,5 +69,6 @@ function refresh() {
 browser.storage.onChanged.addListener(refresh)
 
 refresh();
+
 
 
