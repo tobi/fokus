@@ -1,74 +1,87 @@
-defaultSettings = {
-    "blockedHosts": [
-        "twitter.com",
-        'ycombinator.com',
-        'techmeme.com',
-        'facebook.com',
-        'reddit.com',
-        'youtube.com'
-    ]
-};
 
-const proxyScriptURL = "proxy.js";
-browser.proxy.register(proxyScriptURL);
+var defaultBlockedHosts = [
+    "twitter.com",
+    'ycombinator.com',
+    'techmeme.com',
+    'facebook.com',
+    'reddit.com',
+    'youtube.com'
+];
 
-browser.storage.onChanged.addListener((newSettings) => {
-    if ('blockedHosts' in newSettings) {
-        console.log("Forwarding blockedHosts");
-        browser.runtime.sendMessage({ blockedHosts: newSettings.blockedHosts.newValue }, { toProxyScript: true });
+var active = false;
+
+var state = {
+    active: false, 
+    blockedHosts: defaultBlockedHosts
+}
+
+function updateState(data) {
+    
+    console.log("updating state, ", data)
+    if ('blockedHosts' in data) {
+        state.blockedHosts = data.blockedHosts;
+    }
+    if ('active' in data) {
+        state.active = data.active;
     }
 
-    if ('active' in newSettings) {
-        console.log("Forwarding active:", newSettings.active.newValue);
-        browser.runtime.sendMessage({ active: newSettings.active.newValue }, { toProxyScript: true });
+    updateUX(data)
+}
 
+function updateUX(data) {
+    state.active ?
+        browser.browserAction.setIcon({ path: "icons/on.svg" }) :
+        browser.browserAction.setIcon({ path: "icons/off.svg" });
+}
 
-        newSettings.active.newValue ? 
-            browser.browserAction.setIcon({path: "icons/on.svg"}) :
-            browser.browserAction.setIcon({path: "icons/off.svg"});
+browser.storage.local.get(updateState) 
+browser.storage.onChanged.addListener(newData => {
+
+    let data = {}
+    if(newData.blockedHosts && newData.blockedHosts.newValue)
+        data.blockedHosts = newData.blockedHosts.newValue
+    if(newData.active && newData.active.newValue)
+        data.active = newData.active.newValue
+
+    updateState(data);
+})
+
+browser.proxy.onRequest.addListener(handleProxyRequest, { urls: ["<all_urls>"] });
+
+function isTopFrame(requestInfo) {
+    return requestInfo.parentFrameId == -1;
+}
+
+function handleProxyRequest(requestInfo) {
+    if(!state.active) {
+        return { type: "direct" };
     }
+
+    if(isTopFrame(requestInfo)) {
+
+        const hostname = new URL(requestInfo.url).hostname;
+
+        for (let index = 0; index < state.blockedHosts.length; index++) {
+            const block = state.blockedHosts[index];
+
+            if (hostname.indexOf(block) != -1) {
+             
+                console.log('Blocked:', hostname)
+                return { type: "http", host: "127.0.0.1", port: 65535 };
+
+            }
+        }
+    }
+    // Return instructions to open the requested webpage
+    return { type: "direct" };
+}
+
+
+browser.storage.sync.get(updateState);
+
+
+// Log any errors from the proxy script
+browser.proxy.onError.addListener(error => {
+    console.error(`Proxy error: ${error.message}`);
 });
 
-
-// Initialize the proxy
-function handleInit() {
-
-    browser.storage.sync.get().then((storedSettings) => {
-        if (storedSettings.blockedHosts) {
-            browser.runtime.sendMessage(storedSettings, { toProxyScript: true });
-        } else {
-            browser.storage.sync.set(defaultSettings);
-        }
-    }).catch(() => {
-        console.log("Error retrieving stored settings");
-    });
-
-    browser.storage.local.get().then((storedSettings) => {
-        if (storedSettings.active) {
-            browser.runtime.sendMessage(storedSettings, { toProxyScript: true });
-        }
-    });
-}
-
-function handleMessage(message, sender) {
-
-    if (message == 'toggle' && sender.url == browser.extension.getURL("popup/add.html")) {
-        browser.runtime.sendMessage("toggle", { toProxyScript: true });
-        return
-    }
-
-    // only handle messages from the proxy script
-    if (sender.url == browser.extension.getURL("proxy.js")) {
-        if (message == 'init' ) {
-            handleInit(message);
-        } else {
-            // just log it
-            console.log(message);
-        }
-        return
-    }
-
-    console.log("Unknown message: ", message, ' from ', sender.url)
-}
-
-browser.runtime.onMessage.addListener(handleMessage);
