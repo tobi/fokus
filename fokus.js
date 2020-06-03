@@ -8,22 +8,20 @@ var defaultBlockedHosts = [
     'youtube.com'
 ];
 
-var active = false;
-
 var state = {
     active: false, 
     blockedHosts: defaultBlockedHosts
 }
 
 function updateState(data) {
-    
-    console.log("updating state, ", data)
     if ('blockedHosts' in data) {
         state.blockedHosts = data.blockedHosts;
     }
     if ('active' in data) {
         state.active = data.active;
     }
+
+    console.log("updated state: ", state)
 
     updateUX(data)
 }
@@ -34,10 +32,11 @@ function updateUX(data) {
         browser.browserAction.setIcon({ path: "icons/off.svg" });
 }
 
+browser.storage.sync.get(updateState);
 browser.storage.local.get(updateState) 
 browser.storage.onChanged.addListener(newData => {
 
-    let data = {}
+    let data = state;
     if(newData.blockedHosts && newData.blockedHosts.newValue)
         data.blockedHosts = newData.blockedHosts.newValue
     if(newData.active && newData.active.newValue)
@@ -77,7 +76,6 @@ function handleProxyRequest(requestInfo) {
 }
 
 
-browser.storage.sync.get(updateState);
 
 
 // Log any errors from the proxy script
