@@ -13,51 +13,54 @@ var state = {
     blockedHosts: defaultBlockedHosts
 }
 
-function updateState(data) {
-    if ('blockedHosts' in data) {
-        state.blockedHosts = data.blockedHosts;
+function updateChangedState(changes) {
+    if ('active' in changes) {
+        state.active = changes.active.newValue;
     }
-    if ('active' in data) {
-        state.active = data.active;
+    if ('blockedHosts' in changes) {
+        state.blockedHosts = changes.blockedHosts.newValue;
     }
 
-    console.log("updated state: ", state)
-
-    updateUX(data)
+    updateUX();
 }
 
-function updateUX(data) {
+function updateState(data) {
+    if ('active' in data) {
+        state.active = data.active
+    }
+
+    if ('blockedHosts' in data) {
+        state.blockedHosts = data.blockedHosts
+    }
+    
+    updateUX();
+}
+
+function updateUX() {
+    console.log("status", state.active)
     state.active ?
         browser.browserAction.setIcon({ path: "icons/on.svg" }) :
         browser.browserAction.setIcon({ path: "icons/off.svg" });
 }
 
-browser.storage.sync.get(updateState);
-browser.storage.local.get(updateState) 
-browser.storage.onChanged.addListener(newData => {
+async function init() {
+    await browser.storage.local.get(updateState);
+    await browser.storage.sync.get(updateState);
+    console.log("initialized")
+};
 
-    let data = state;
-    if(newData.blockedHosts && newData.blockedHosts.newValue)
-        data.blockedHosts = newData.blockedHosts.newValue
-    if(newData.active && newData.active.newValue)
-        data.active = newData.active.newValue
+init()
 
-    updateState(data);
-})
+browser.storage.onChanged.addListener(updateChangedState);
 
 browser.proxy.onRequest.addListener(handleProxyRequest, { urls: ["<all_urls>"] });
-
-function isTopFrame(requestInfo) {
-    return requestInfo.parentFrameId == -1;
-}
 
 function handleProxyRequest(requestInfo) {
     if(!state.active) {
         return { type: "direct" };
     }
 
-    if(isTopFrame(requestInfo)) {
-
+    if(requestInfo.parentFrameId == -1) {
         const hostname = new URL(requestInfo.url).hostname;
 
         for (let index = 0; index < state.blockedHosts.length; index++) {
@@ -74,9 +77,6 @@ function handleProxyRequest(requestInfo) {
     // Return instructions to open the requested webpage
     return { type: "direct" };
 }
-
-
-
 
 // Log any errors from the proxy script
 browser.proxy.onError.addListener(error => {
