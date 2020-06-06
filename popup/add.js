@@ -1,91 +1,116 @@
-var currentHost = '';
 
-function toggleActive() {
-    browser.storage.local.get().then((storedSettings) => {   
-        storedSettings.active = !storedSettings.active; 
-        browser.storage.local.set(storedSettings);
-    });
+import { html, useState, useEffect, useCallback, render } from './preact/standalone.module.js';
+
+
+function BlockingStatus(props) {
+    const [isActive, setActive] = useState(null);
+
+    useEffect(() => {
+        browser.storage.local.get().then(data => {
+            setActive(data.active); 
+        })
+    }, []);
+
+    useEffect(() => { 
+        function handleStatusChange(data) { 
+            if('active' in data) {
+                setActive(data.active.newValue); 
+            }
+        } 
+
+        browser.storage.onChanged.addListener(handleStatusChange)
+        return () => {
+            browser.storage.onChanged.removeListener(handleStatusChange); 
+        }; 
+    }, []);
+
+    const toggle = useCallback(() => {        
+        browser.storage.local.get().then((storedSettings) => {
+            storedSettings.active = !storedSettings.active;    
+            browser.storage.local.set(storedSettings);
+        });
+    }, [isActive]);
+
+
+    let label = isActive ? "ON" : "OFF";
+
+    return html`<a href="#" onclick=${toggle} id='status'>${label}</a>`
 }
 
-function remove(host) {
-    console.log("Removing: ", host);
-    browser.storage.sync.get().then((storedSettings) => {
-        storedSettings.blockedHosts = storedSettings.blockedHosts.filter(item => item !== host)       
-        browser.storage.sync.set(storedSettings);
-    });
-}
+function HostList(props) {
+    const [list, setList] = useState([]);
+    
+    useEffect(() => { 
+        browser.storage.sync.get().then((storedSettings) => {
+            setList(storedSettings.blockedHosts);
+        });
+    }, []);
 
-function add(host) {
-    console.log("Adding: ", host);
-    browser.storage.sync.get().then((storedSettings) => {   
-        hosts = new Set(storedSettings.blockedHosts);
-        hosts.add(host);
-
-        storedSettings.blockedHosts = Array.from(hosts)
-        browser.storage.sync.set(storedSettings);
-    });
-
-}
-
-function refreshContent() {
-    browser.storage.sync.get().then((storedSettings) => {
-        var content = document.getElementById('popup-content');
-        while (content.firstChild) {
-            content.removeChild(content.firstChild);
+    useEffect(() => { 
+        function handleStatusChange(data) { 
+            if('blockedHosts' in data) {
+                setList(data.blockedHosts.newValue);
+            } 
         }
 
-        storedSettings.blockedHosts.forEach( (_host) => {
+        browser.storage.onChanged.addListener(handleStatusChange)
+        return () => {
+            browser.storage.onChanged.removeListener(handleStatusChange); 
+        }; 
+    }, []);
 
-            var a = document.createElement("a")
-            a.onclick = (e) => {
-                remove(_host);
-                e.preventDefault();
-            }
-            a.href = '#';
-            a.appendChild(document.createTextNode(_host));
 
-            var li = document.createElement("li");
-            li.appendChild(a);
-            content.appendChild( li );
+    const removeHost = useCallback((host) => {        
+        console.log("removing", host)
+        
+        browser.storage.sync.get().then((storedSettings) => {
+            storedSettings.blockedHosts = storedSettings.blockedHosts.filter(item => item !== host)
+            browser.storage.sync.set(storedSettings);
         });
     });
+
+
+    return html`
+        <div>
+        ${list.map(e => html`
+            <${HostEntry} host=${e} onclick=${() => removeHost(e)} />
+        `)}
+        </div>`
 }
 
-function refreshActive() {
-    browser.storage.local.get().then((storedSettings) => {        
-        var status = !!storedSettings.active;
-        var a = document.getElementById('status')
-        while (a.firstChild) {
-            a.removeChild(a.firstChild);
-        }
-        a.appendChild( document.createTextNode(status ? "ON" : "OFF"));
-        a.onclick = toggleActive;
-    });
+function HostEntry(props) {
+    return html`<li><a href="#" class="btn" onclick=${props.onclick}>✖</a> ${props.host}</li>`
 }
 
-function refreshCurrent() {
-    browser.tabs.query({active: true, currentWindow: true}, function(tabs) {
-        currentHost = new URL(tabs[0].url).host;
-        var a = document.getElementById('current')
-        while (a.firstChild) {
-            a.removeChild(a.firstChild);
-        }
-        a.appendChild( document.createTextNode(currentHost) );
-        a.onclick = (e) => {
-            add(currentHost);
-        };
-      });
+function AddCurrent(props) {
+    const [currentHost, setCurrentHost] = useState("")
+
+    useEffect(() => {
+        browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+            const host = new URL(tabs[0].url).host;
+            setCurrentHost(host);
+        });
+    }, [])
+
+    const addHost = useCallback((host) => {        
+        console.log("adding", host)
+        browser.storage.sync.get().then((storedSettings) => {
+            const hosts = new Set(storedSettings.blockedHosts);
+            hosts.add(host);
     
+            storedSettings.blockedHosts = Array.from(hosts)
+            browser.storage.sync.set(storedSettings);
+        });
+    });    
+
+    return html`Add: <button onclick=${() => addHost(currentHost)}>${currentHost}</button>`
 }
 
-function refresh() {
-    refreshActive();
-    refreshContent();
-    refreshCurrent();
-}
+const app = html`
+    <div><span>Blocking: </span><${BlockingStatus} /></div>
+    <hr/>
+    <${HostList}/>
+    <hr/>
+    <${AddCurrent}/>`
 
-browser.storage.onChanged.addListener(refresh)
-
-refresh();
-
-
+render(app, document.body)

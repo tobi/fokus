@@ -4,15 +4,12 @@
   <head>
     <meta charset="utf-8">
     <style>
+
     html, body {
-     width: 180px;
+     width: 200px;
      font-size: 11pt;
      font-family: Arial, Helvetica, sans-serif;
      background: #fdfdfd;
-    }
-
-    .hidden {
-      display: none;
     }
 
     .button {
@@ -31,31 +28,14 @@
       background-color: #E5F2F2;
     }
 
-    .reset {
-      background-color: #FBFBC9;
+    .btn {
+      text-decoration: none;
     }
 
-    .reset:hover {
-      background-color: #EAEA9D;
-    }
-    </style>
+    </style>  
   </head>
 <body>
-  <div>Blocking: <a href="#" id='status'>{off?}</a></div>
-  <hr/>
-  <div id="popup-content">
-    {empty?}
-  </div>
-  <hr/>
-  <div id="error-content" class="hidden">
-    <p>Can't beastify this web page.</p><p>Try a different page.</p>
-  </div>
-
-  <div id="add">
-    Add: <a href="#" id="current">{empty?}</a>
-  </div>
-  
-  <script src="add.js"></script>
+  <script src="add.js" type="module"></script>
 </body>
 
 </html>
