@@ -2,19 +2,97 @@
 import { html, useState, useEffect, useCallback, render } from './preact/standalone.module.js';
 
 
-function BlockingStatus(props) {
+function ToggleActive(props) {
+    const isActive = props.active;
+
+    const toggle = useCallback(() => {        
+        browser.storage.local.get().then((storedSettings) => {
+            storedSettings.active = !storedSettings.active;    
+            browser.storage.local.set(storedSettings);
+        });
+    }, [isActive]);
+
+    const label = isActive ? "ON" : "OFF";
+    const link = html`<a href="#" onclick=${toggle} id='status'>${label}</a>`;
+
+    return html`Blocking: ${link}`
+}
+
+function HostList(props) {
+    const list = props.hosts;
+    
+    const removeHost = useCallback((host) => {        
+        console.log("removing", host)
+        
+        browser.storage.sync.get().then((storedSettings) => {
+            storedSettings.blockedHosts = storedSettings.blockedHosts.filter(item => item !== host)
+            browser.storage.sync.set(storedSettings);
+        });
+    }, []);
+
+    return list.map(e => html`<${HostEntry} host=${e} onclick=${() => removeHost(e)} />`);
+}
+
+function HostEntry(props) {
+    return html`<li><a href="#" class="btn" onclick=${props.onclick}>✖</a> ${props.host}</li>`
+}
+
+function AddCurrent(props) {
+    const currentHost = props.currentHost;
+    const hosts = props.hosts;
+
+    const addHost = useCallback((host) => {        
+        console.log("adding", host)
+        browser.storage.sync.get().then((storedSettings) => {
+            const hosts = new Set(storedSettings.blockedHosts);
+            hosts.add(currentHost);
+    
+            storedSettings.blockedHosts = Array.from(hosts)
+            browser.storage.sync.set(storedSettings);
+        });
+    }, [currentHost]); 
+
+
+    if (currentHost == "") {
+        return "fokus time";
+    }
+
+    if (hosts.includes(currentHost)) {
+        return "Already blocked 💀"
+    }
+    
+    return html`Add: <a href=# onclick=${() => addHost(currentHost)}>${currentHost}</a>`
+}
+
+
+function Popup() {
     const [isActive, setActive] = useState(null);
+    const [blockedHosts, setBlockedHosts] = useState([]);
+    const [currentHost, setCurrentHost] = useState("");
 
     useEffect(() => {
-        browser.storage.local.get().then(data => {
-            setActive(data.active); 
-        })
+        browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+            const host = new URL(tabs[0].url).host;
+            setCurrentHost(host);
+        });
+    }, [])
+
+    useEffect(() => {
+        browser.storage.local.get().then(local => setActive(local.active))
+    }, []);
+
+    useEffect(() => { 
+        browser.storage.sync.get().then(sync => setBlockedHosts(sync.blockedHosts));
     }, []);
 
     useEffect(() => { 
         function handleStatusChange(data) { 
             if('active' in data) {
                 setActive(data.active.newValue); 
+            }
+
+            if('blockedHosts' in data) {
+                setBlockedHosts(data.blockedHosts.newValue); 
             }
         } 
 
@@ -24,100 +102,19 @@ function BlockingStatus(props) {
         }; 
     }, []);
 
-    const toggle = useCallback(() => {        
-        browser.storage.local.get().then((storedSettings) => {
-            storedSettings.active = !storedSettings.active;    
-            browser.storage.local.set(storedSettings);
-        });
-    }, [isActive]);
-
-
-    let label = isActive ? "ON" : "OFF";
-
-    return html`<a href="#" onclick=${toggle} id='status'>${label}</a>`
-}
-
-function HostList(props) {
-    const [list, setList] = useState([]);
-    
-    useEffect(() => { 
-        browser.storage.sync.get().then((storedSettings) => {
-            setList(storedSettings.blockedHosts);
-        });
-    }, []);
-
-    useEffect(() => { 
-        function handleStatusChange(data) { 
-            if('blockedHosts' in data) {
-                setList(data.blockedHosts.newValue);
-            } 
-        }
-
-        browser.storage.onChanged.addListener(handleStatusChange)
-        return () => {
-            browser.storage.onChanged.removeListener(handleStatusChange); 
-        }; 
-    }, []);
-
-
-    const removeHost = useCallback((host) => {        
-        console.log("removing", host)
-        
-        browser.storage.sync.get().then((storedSettings) => {
-            storedSettings.blockedHosts = storedSettings.blockedHosts.filter(item => item !== host)
-            browser.storage.sync.set(storedSettings);
-        });
-    });
-
-
     return html`
-        <section class="list">
-        ${list.map(e => html`
-            <${HostEntry} host=${e} onclick=${() => removeHost(e)} />
-        `)}
-        </section>`
-}
-
-function HostEntry(props) {
-    return html`<li><a href="#" class="btn" onclick=${props.onclick}>✖</a> ${props.host}</li>`
-}
-
-function AddCurrent(props) {
-    const [currentHost, setCurrentHost] = useState("")
-
-    useEffect(() => {
-        browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-            const host = new URL(tabs[0].url).host;
-            setCurrentHost(host);
-        });
-    }, [])
-
-    const addHost = useCallback((host) => {        
-        console.log("adding", host)
-        browser.storage.sync.get().then((storedSettings) => {
-            const hosts = new Set(storedSettings.blockedHosts);
-            hosts.add(host);
-    
-            storedSettings.blockedHosts = Array.from(hosts)
-            browser.storage.sync.set(storedSettings);
-        });
-    }); 
-
-    if (currentHost != "") {
-        return html`Add: <a href=# onclick=${() => addHost(currentHost)}>${currentHost}</a>`
-    } else {
-        return "fokus"
-    }
-}
-
-const app = html`
     <header>
-        <span>Blocking: </span><${BlockingStatus} />
+        <${ToggleActive} active=${isActive} />
     </header>
-    <${HostList}/>
+    <section class="list">                
+      <${HostList} hosts=${blockedHosts}/>
+    </section>
     <footer>
-        <${AddCurrent}/>
+        <${AddCurrent} hosts=${blockedHosts} currentHost=${currentHost}/>
     </footer>
     `
+}
+
+const app = html`<${Popup} />`
 
 render(app, document.body)
