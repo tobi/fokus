@@ -71,11 +71,11 @@ function HostList(props) {
 
 
     return html`
-        <div>
+        <section class="list">
         ${list.map(e => html`
             <${HostEntry} host=${e} onclick=${() => removeHost(e)} />
         `)}
-        </div>`
+        </section>`
 }
 
 function HostEntry(props) {
@@ -101,16 +101,23 @@ function AddCurrent(props) {
             storedSettings.blockedHosts = Array.from(hosts)
             browser.storage.sync.set(storedSettings);
         });
-    });    
+    }); 
 
-    return html`Add: <button onclick=${() => addHost(currentHost)}>${currentHost}</button>`
+    if (currentHost != "") {
+        return html`Add: <a href=# onclick=${() => addHost(currentHost)}>${currentHost}</a>`
+    } else {
+        return "fokus"
+    }
 }
 
 const app = html`
-    <div><span>Blocking: </span><${BlockingStatus} /></div>
-    <hr/>
+    <header>
+        <span>Blocking: </span><${BlockingStatus} />
+    </header>
     <${HostList}/>
-    <hr/>
-    <${AddCurrent}/>`
+    <footer>
+        <${AddCurrent}/>
+    </footer>
+    `
 
 render(app, document.body)
