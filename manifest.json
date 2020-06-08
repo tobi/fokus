@@ -22,10 +22,21 @@
         "default_title": "Fokus",
         "default_popup": "popup/add.html"
     },
+
+    "web_accessible_resources": [
+      "popup/no.html"
+    ],
     
     "background": {
-        "scripts": [ "fokus.js" ]
+        "scripts": [ 
+          "fokus.js" 
+        ]
     },
     
-    "permissions": ["activeTab", "proxy", "storage", "<all_urls>"]
+    "permissions": [
+      "<all_urls>", 
+      "activeTab",  
+      "storage", 
+      "webRequest", 
+      "webRequestBlocking"]
   }

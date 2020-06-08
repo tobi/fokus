@@ -30,6 +30,10 @@ function HostList(props) {
         });
     }, []);
 
+    if(list.length == 0) {
+        return "Add websites here"
+    }
+
     return list.map(e => html`<${HostEntry} host=${e} onclick=${() => removeHost(e)} />`);
 }
 
@@ -72,17 +76,21 @@ function Popup() {
 
     useEffect(() => {
         browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-            const host = new URL(tabs[0].url).host;
-            setCurrentHost(host);
+            const url = new URL(tabs[0].url);
+
+            if(url.protocol  == 'http:' || url.protocol == 'https:') {
+                const host = url.host;
+                setCurrentHost(host);
+            }            
         });
     }, [])
 
     useEffect(() => {
-        browser.storage.local.get().then(local => setActive(local.active))
+        browser.storage.local.get("active").then(local => setActive(local.active || false))
     }, []);
 
     useEffect(() => { 
-        browser.storage.sync.get().then(sync => setBlockedHosts(sync.blockedHosts));
+        browser.storage.sync.get("blockedHosts").then(sync => setBlockedHosts(sync.blockedHosts || []));
     }, []);
 
     useEffect(() => { 

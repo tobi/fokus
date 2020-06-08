@@ -9,7 +9,7 @@ var defaultBlockedHosts = [
 ];
 
 var state = {
-    active: false, 
+    active: false,
     blockedHosts: defaultBlockedHosts
 }
 
@@ -32,7 +32,7 @@ function updateState(data) {
     if ('blockedHosts' in data) {
         state.blockedHosts = data.blockedHosts
     }
-    
+
     updateUX();
 }
 
@@ -46,40 +46,62 @@ function updateUX() {
 async function init() {
     await browser.storage.local.get(updateState);
     await browser.storage.sync.get(updateState);
-    console.log("initialized")
 };
 
 init()
 
 browser.storage.onChanged.addListener(updateChangedState);
 
-browser.proxy.onRequest.addListener(handleProxyRequest, { urls: ["<all_urls>"] });
+function cancel(requestDetails) {
 
-function handleProxyRequest(requestInfo) {
-    if(!state.active) {
-        return { type: "direct" };
+    if (!state.active) {
+        return;
     }
 
-    if(requestInfo.parentFrameId == -1) {
-        const hostname = new URL(requestInfo.url).hostname;
+    const host = new URL(requestDetails.url).host;
 
-        for (let index = 0; index < state.blockedHosts.length; index++) {
-            const block = state.blockedHosts[index];
-
-            if (hostname.indexOf(block) != -1) {
-             
-                console.log('Blocked:', hostname)
-                return { type: "http", host: "127.0.0.1", port: 65535 };
-
+    if (state.blockedHosts && state.blockedHosts.includes(host)) {
+        console.log("Blocking: ", host)
+    
+        browser.storage.sync.get("stats").then((storedSettings) => {
+            const stats = storedSettings.stats || {};            
+            const today = new Intl.DateTimeFormat('en-US').format(new Date());
+            
+            if (!stats[today]) {
+                stats[today] = []
             }
-        }
+
+            let hostEntry = stats[today].filter( e => e.host == host )[0]
+            
+            console.log(hostEntry)
+            if (!hostEntry) {
+                hostEntry = {host: host, count: 0}
+                stats[today].push(hostEntry);
+            }
+
+            hostEntry.count += 1;
+            
+            storedSettings.stats = stats;
+            browser.storage.sync.set(storedSettings);
+        });
+
+        const blocked = browser.extension.getURL("popup/no.html")
+
+        return { redirectUrl: blocked };
     }
-    // Return instructions to open the requested webpage
-    return { type: "direct" };
+
 }
 
-// Log any errors from the proxy script
-browser.proxy.onError.addListener(error => {
-    console.error(`Proxy error: ${error.message}`);
-});
+browser.webRequest.onBeforeRequest.addListener(
+    cancel,
+    { urls: ["<all_urls>"], types: ["main_frame"] },
+    ["blocking"]
+);
+
+
+
+// // Log any errors from the proxy script
+// browser.proxy.onError.addListener(error => {
+//     console.error(`Proxy error: ${error.message}`);
+// });
 
