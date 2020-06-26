@@ -17,6 +17,9 @@ function updateChangedState(changes) {
     if ('active' in changes) {
         state.active = changes.active.newValue;
     }
+    if ('enabledUntil' in changes) {
+        state.enabledUntil = changes.enabledUntil.newValue;
+    }
     if ('blockedHosts' in changes) {
         state.blockedHosts = changes.blockedHosts.newValue;
     }
@@ -28,7 +31,9 @@ function updateState(data) {
     if ('active' in data) {
         state.active = data.active
     }
-
+    if ('enabledUntil' in data) {
+        state.enabledUntil = data.newValue;
+    }
     if ('blockedHosts' in data) {
         state.blockedHosts = data.blockedHosts
     }
@@ -55,6 +60,11 @@ browser.storage.onChanged.addListener(updateChangedState);
 function cancel(requestDetails) {
 
     if (!state.active) {
+        return;
+    }
+
+    if (state.enabledUntil && Date.now() < state.enabledUntil ) {
+        console.log('temporarily enabled')
         return;
     }
 
@@ -85,7 +95,7 @@ function cancel(requestDetails) {
             browser.storage.sync.set(storedSettings);
         });
 
-        const blocked = browser.extension.getURL("popup/no.html")
+        const blocked = browser.extension.getURL("popup/no.html") + "?" + requestDetails.url
 
         return { redirectUrl: blocked };
     }

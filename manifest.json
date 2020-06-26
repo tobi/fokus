@@ -2,7 +2,7 @@
 
     "manifest_version": 2,
     "name": "Fokus",
-    "version": "1.5",
+    "version": "1.8",
 
     "browser_specific_settings": {
       "gecko": {

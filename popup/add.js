@@ -1,4 +1,4 @@
-
+// https://unpkg.com/htm@3.0.4/preact/standalone.module.js
 import { html, useState, useEffect, useCallback, render } from './preact/standalone.module.js';
 
 
@@ -8,12 +8,26 @@ function ToggleActive(props) {
     const toggle = useCallback(() => {        
         browser.storage.local.get().then((storedSettings) => {
             storedSettings.active = !storedSettings.active;    
+            storedSettings.enabledUntil = 0;    
             browser.storage.local.set(storedSettings);
         });
     }, [isActive]);
 
     const label = isActive ? "ON" : "OFF";
-    const link = html`<a href="#" onclick=${toggle} id='status'>${label}</a>`;
+
+    let until = ''
+
+    if (Date.now() < props.enabledUntil) {
+        const sec = Math.floor((props.enabledUntil- Date.now()) / 1000 );
+        const min = Math.floor(sec / 60) 
+        if(min > 0 )
+            until = `(enabled: ${min}:${sec % 60}s)`
+        else 
+            until = `(enabled: ${sec}s)`
+        
+    }
+
+    const link = html`<a href="#" onclick=${toggle} id='status'>${label}</a> ${until}`;
 
     return html`Blocking: ${link}`
 }
@@ -71,6 +85,7 @@ function AddCurrent(props) {
 
 function Popup() {
     const [isActive, setActive] = useState(null);
+    const [enabledUntil, setEnabledUntil] = useState(0);
     const [blockedHosts, setBlockedHosts] = useState([]);
     const [currentHost, setCurrentHost] = useState("");
 
@@ -86,6 +101,10 @@ function Popup() {
     }, [])
 
     useEffect(() => {
+        browser.storage.local.get("enabledUntil").then(local => setEnabledUntil(local.enabledUntil || 0))
+    }, []);
+
+    useEffect(() => {
         browser.storage.local.get("active").then(local => setActive(local.active || false))
     }, []);
 
@@ -98,6 +117,8 @@ function Popup() {
             if('active' in data) {
                 setActive(data.active.newValue); 
             }
+            if('enabledUntil' in data) {
+                setEnabledUntil(data.enabledUntil.newValue);             }
 
             if('blockedHosts' in data) {
                 setBlockedHosts(data.blockedHosts.newValue); 
@@ -112,13 +133,15 @@ function Popup() {
 
     return html`
     <header>
-        <${ToggleActive} active=${isActive} />
+        <${ToggleActive} active=${isActive} enabledUntil=${enabledUntil} />
     </header>
+
     <section class="list">                
       <${HostList} hosts=${blockedHosts}/>
     </section>
+
     <footer>
-        <${AddCurrent} hosts=${blockedHosts} currentHost=${currentHost}/>
+      <${AddCurrent} hosts=${blockedHosts} currentHost=${currentHost}/>
     </footer>
     `
 }

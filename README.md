@@ -1,19 +1,14 @@
 # fokus time
 
-Simple Web Extension (Firefox, Chrome) that does nothing other than allowing you to block a bunch of hosts to make it easier to focus when emails are piling up.
+Simple Web Extension (Firefox, Chrome, Safari 14+, Edge) that allows you to maintain a blocklist of websites that you find distracting and block them all at the same time when focus is needed. 
 
 # Install 
 
-Option1) 
-* Use temporary install method: about:debugging
-* Point it at manifest.json
+You can install the plugin from the Fokus time page on the Firefox addon site [here](https://addons.mozilla.org/en-CA/firefox/addon/fokus-time/
+). 
 
-More here: https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Temporary_Installation_in_Firefox
+### Building it yourself
+ 
+Use [temporary install method](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Temporary_Installation_in_Firefox). Basically type `about:debugging` find the option to load a addon temporarily and and point it at manifest.json
 
-Option2)
 
-    make
-
-Option3)
-
-Install at https://addons.mozilla.org/en-CA/firefox/addon/fokus-time/
