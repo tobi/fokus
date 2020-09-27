@@ -63,7 +63,7 @@ function EnableTemporarily(props) {
     }
 
     return html`
-        <section class=list>
+        <section class="list buttons">
         <button onclick=${() => enable(60)}>Enable 1 minute</button>
 
         <button onclick=${() => enable(60*5)}>Enable 5 minute</button>
@@ -73,9 +73,11 @@ function EnableTemporarily(props) {
 }
 
 const app = html`
-    <${FokusTime} />
-    <${Stats} />
-    <${EnableTemporarily} />
+    <div id="fokus">
+        <${FokusTime} />
+        <${Stats} />
+        <${EnableTemporarily} />
+    </div>
 `
 
-render(app, document.body)
+render(app, document.body);
