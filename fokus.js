@@ -1,4 +1,5 @@
 
+
 var defaultBlockedHosts = [
     "twitter.com",
     'ycombinator.com',
@@ -44,20 +45,12 @@ function updateState(data) {
 function updateUX() {
     console.log("status", state.active)
     state.active ?
-        browser.browserAction.setIcon({ path: "icons/on.svg" }) :
-        browser.browserAction.setIcon({ path: "icons/off.svg" });
+        chrome.browserAction.setIcon({ path: "icons/on.svg" }) :
+        chrome.browserAction.setIcon({ path: "icons/off.svg" });
 }
 
-async function init() {
-    await browser.storage.local.get(updateState);
-    await browser.storage.sync.get(updateState);
-};
-
-init()
-
-browser.storage.onChanged.addListener(updateChangedState);
-
 function cancel(requestDetails) {
+    console.log("cancelling? ")
 
     if (!state.active) {
         return;
@@ -73,7 +66,7 @@ function cancel(requestDetails) {
     if (state.blockedHosts && state.blockedHosts.includes(host)) {
         console.log("Blocking: ", host)
     
-        browser.storage.sync.get("stats").then((storedSettings) => {
+        chrome.storage.sync.get("stats", (storedSettings) => {
             const stats = storedSettings.stats || {};            
             const today = new Intl.DateTimeFormat('en-US').format(new Date());
             
@@ -92,26 +85,30 @@ function cancel(requestDetails) {
             hostEntry.count += 1;
             
             storedSettings.stats = stats;
-            browser.storage.sync.set(storedSettings);
+            chrome.storage.sync.set(storedSettings);
         });
 
-        const blocked = browser.extension.getURL("popup/no.html") + "?" + requestDetails.url
+        const blocked = chrome.extension.getURL("popup/no.html") + "?" + requestDetails.url
 
         return { redirectUrl: blocked };
     }
-
 }
 
-browser.webRequest.onBeforeRequest.addListener(
+async function init() {
+    console.log("Loaded");
+    await chrome.storage.local.get(updateState);
+    await chrome.storage.sync.get(updateState);
+};
+
+init();
+
+
+chrome.storage.onChanged.addListener(updateChangedState);
+
+
+chrome.webRequest.onBeforeRequest.addListener(
     cancel,
     { urls: ["<all_urls>"], types: ["main_frame"] },
     ["blocking"]
 );
-
-
-
-// // Log any errors from the proxy script
-// browser.proxy.onError.addListener(error => {
-//     console.error(`Proxy error: ${error.message}`);
-// });
 
