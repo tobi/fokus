@@ -1,5 +1,6 @@
 // https://unpkg.com/htm@3.0.4/preact/standalone.module.js
 import { html, useState, useEffect, useCallback, render } from './preact/standalone.module.js';
+import { removeSubdomain } from '../lib/domains.js'
 
 function ToggleActive(props) {
     const isActive = props.active;
@@ -93,7 +94,7 @@ function Popup() {
             const url = new URL(tabs[0].url);
 
             if(url.protocol  == 'http:' || url.protocol == 'https:') {
-                const host = url.host;
+                const host = removeSubdomain(url.host);
                 setCurrentHost(host);
             }            
         });

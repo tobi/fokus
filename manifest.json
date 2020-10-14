@@ -28,15 +28,17 @@
     ],
     
     "background": {
-        "scripts": [ 
-          "fokus.js" 
-        ]
+        "page": 
+          "fokus.html" 
+        
     },
     
     "permissions": [
       "<all_urls>", 
+      "tabs",
       "activeTab",  
       "storage", 
-      "webRequest", 
+      "webRequest",
+      "webNavigation", 
       "webRequestBlocking"]
   }
