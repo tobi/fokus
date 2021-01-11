@@ -1,6 +1,8 @@
 
+import {removeSubdomain} from './lib/domains.js'
+
 var defaultBlockedHosts = [
-    "twitter.com",
+    'twitter.com',
     'ycombinator.com',
     'techmeme.com',
     'facebook.com',
@@ -11,6 +13,10 @@ var defaultBlockedHosts = [
 var state = {
     active: false,
     blockedHosts: defaultBlockedHosts
+}
+
+function popup(url) {
+    return chrome.extension.getURL("popup/no.html") + "?" + url
 }
 
 function updateChangedState(changes) {
@@ -42,38 +48,28 @@ function updateState(data) {
 }
 
 function updateUX() {
-    console.log("status", state.active)
     state.active ?
-        browser.browserAction.setIcon({ path: "icons/on.svg" }) :
-        browser.browserAction.setIcon({ path: "icons/off.svg" });
+        chrome.browserAction.setIcon({ path: "icons/on.svg" }) :
+        chrome.browserAction.setIcon({ path: "icons/off.svg" });
 }
 
-async function init() {
-    await browser.storage.local.get(updateState);
-    await browser.storage.sync.get(updateState);
-};
-
-init()
-
-browser.storage.onChanged.addListener(updateChangedState);
-
-function cancel(requestDetails) {
-
+function shouldCancel(url) {
     if (!state.active) {
-        return;
+        return false;
     }
 
     if (state.enabledUntil && Date.now() < state.enabledUntil ) {
         console.log('temporarily enabled')
-        return;
+        return false;
     }
 
-    const host = new URL(requestDetails.url).host;
+    const host = removeSubdomain(url);
 
     if (state.blockedHosts && state.blockedHosts.includes(host)) {
         console.log("Blocking: ", host)
     
-        browser.storage.sync.get("stats").then((storedSettings) => {
+        // update stats
+        chrome.storage.sync.get("stats", (storedSettings) => {
             const stats = storedSettings.stats || {};            
             const today = new Intl.DateTimeFormat('en-US').format(new Date());
             
@@ -83,7 +79,6 @@ function cancel(requestDetails) {
 
             let hostEntry = stats[today].filter( e => e.host == host )[0]
             
-            console.log(hostEntry)
             if (!hostEntry) {
                 hostEntry = {host: host, count: 0}
                 stats[today].push(hostEntry);
@@ -92,26 +87,46 @@ function cancel(requestDetails) {
             hostEntry.count += 1;
             
             storedSettings.stats = stats;
-            browser.storage.sync.set(storedSettings);
+            chrome.storage.sync.set(storedSettings);            
         });
 
-        const blocked = browser.extension.getURL("popup/no.html") + "?" + requestDetails.url
-
-        return { redirectUrl: blocked };
+        return true;
     }
-
+    return false;
 }
 
-browser.webRequest.onBeforeRequest.addListener(
-    cancel,
-    { urls: ["<all_urls>"], types: ["main_frame"] },
+async function init() {
+    console.log("init")
+    await chrome.storage.local.get(updateState);
+    await chrome.storage.sync.get(updateState);
+};
+
+init();
+
+
+chrome.storage.onChanged.addListener(updateChangedState);
+
+
+// Attempt to cancel the request once its initiated
+chrome.webRequest.onBeforeRequest.addListener(
+    (details) => {
+        const url = new URL(details.url);
+        if (details.frameId == 0 && shouldCancel(url.hostname)) {
+            return {redirectUrl: popup(details.url)}
+        }
+    },
+    { urls: ["<all_urls>"], types: ["main_frame", "xmlhttprequest"] },
     ["blocking"]
 );
 
+// In some cases, like PWAs in cache, we don't get a onBeforeRequest event at all. In those cases
+// we double check once the navigate is completed and redirect then. Twitter.com is a good example of this. 
+chrome.webNavigation.onCompleted.addListener(
+    (details) => {
+        const url = new URL(details.url);
 
-
-// // Log any errors from the proxy script
-// browser.proxy.onError.addListener(error => {
-//     console.error(`Proxy error: ${error.message}`);
-// });
-
+        if (details.frameId == 0 && shouldCancel(url.hostname)) {            
+            chrome.tabs.update(details.tabId, {url: popup(details.url)})            
+        }
+    }
+);

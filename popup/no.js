@@ -1,5 +1,5 @@
 // https://unpkg.com/htm@3.0.4/preact/standalone.module.js
-import { html, useState, useEffect, useMemo, render } from './preact/standalone.module.js';
+import { html, useState, useMemo, render } from './preact/standalone.module.js';
 
 function BlockedHost(props) {
     const {host, count} = props;
@@ -18,7 +18,7 @@ function Stats(props) {
     const [hosts, setHosts] = useState([]);
 
     useMemo(() => {
-        browser.storage.sync.get("stats").then(data => {
+        chrome.storage.sync.get("stats", data => {
             if("stats" in data) {
                 const today = new Intl.DateTimeFormat('en-US').format(new Date());
                 setHosts(data.stats[today] || []);
@@ -46,7 +46,7 @@ function EnableTemporarily(props) {
     }, [lastUrl])
 
     useMemo(() => {
-        browser.storage.local.get("enabledUntil").then(data => {
+        chrome.storage.local.get("enabledUntil", data => {
             if("enabledUntil" in data) {
                 setEnabledUntil(data.enabledUntil);
             }
@@ -58,7 +58,7 @@ function EnableTemporarily(props) {
         t.setSeconds(t.getSeconds() + seconds);
         const millis = t.getTime();
 
-        browser.storage.local.set({enabledUntil: millis});
+        chrome.storage.local.set({enabledUntil: millis});
         setEnabledUntil(millis);
     }
 
