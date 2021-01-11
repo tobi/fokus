@@ -2,7 +2,7 @@
 
     "manifest_version": 2,
     "name": "Fokus",
-    "version": "1.5",
+    "version": "1.8",
 
     "browser_specific_settings": {
       "gecko": {
@@ -28,15 +28,17 @@
     ],
     
     "background": {
-        "scripts": [ 
-          "fokus.js" 
-        ]
+        "page": 
+          "fokus.html" 
+        
     },
     
     "permissions": [
       "<all_urls>", 
+      "tabs",
       "activeTab",  
       "storage", 
-      "webRequest", 
+      "webRequest",
+      "webNavigation", 
       "webRequestBlocking"]
   }

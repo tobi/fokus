@@ -1,19 +1,33 @@
-
+// https://unpkg.com/htm@3.0.4/preact/standalone.module.js
 import { html, useState, useEffect, useCallback, render } from './preact/standalone.module.js';
-
+import { removeSubdomain } from '../lib/domains.js'
 
 function ToggleActive(props) {
     const isActive = props.active;
 
-    const toggle = useCallback(() => {        
-        browser.storage.local.get().then((storedSettings) => {
+    const toggle = useCallback(() => {
+        chrome.storage.local.get((storedSettings) => {
             storedSettings.active = !storedSettings.active;    
-            browser.storage.local.set(storedSettings);
+            storedSettings.enabledUntil = 0;    
+            chrome.storage.local.set(storedSettings);
         });
     }, [isActive]);
 
     const label = isActive ? "ON" : "OFF";
-    const link = html`<a href="#" onclick=${toggle} id='status'>${label}</a>`;
+
+    let until = ''
+
+    if (Date.now() < props.enabledUntil) {
+        const sec = Math.floor((props.enabledUntil- Date.now()) / 1000 );
+        const min = Math.floor(sec / 60) 
+        if(min > 0 )
+            until = `(enabled: ${min}:${sec % 60}s)`
+        else 
+            until = `(enabled: ${sec}s)`
+        
+    }
+
+    const link = html`<a href="#" onclick=${toggle} id='status'>${label}</a> ${until}`;
 
     return html`Blocking: ${link}`
 }
@@ -24,9 +38,9 @@ function HostList(props) {
     const removeHost = useCallback((host) => {        
         console.log("removing", host)
         
-        browser.storage.sync.get().then((storedSettings) => {
+        chrome.storage.sync.get((storedSettings) => {
             storedSettings.blockedHosts = storedSettings.blockedHosts.filter(item => item !== host)
-            browser.storage.sync.set(storedSettings);
+            chrome.storage.sync.set(storedSettings);
         });
     }, []);
 
@@ -47,12 +61,12 @@ function AddCurrent(props) {
 
     const addHost = useCallback((host) => {        
         console.log("adding", host)
-        browser.storage.sync.get().then((storedSettings) => {
+        chrome.storage.sync.get((storedSettings) => {
             const hosts = new Set(storedSettings.blockedHosts);
             hosts.add(currentHost);
     
             storedSettings.blockedHosts = Array.from(hosts)
-            browser.storage.sync.set(storedSettings);
+            chrome.storage.sync.set(storedSettings);
         });
     }, [currentHost]); 
 
@@ -71,26 +85,31 @@ function AddCurrent(props) {
 
 function Popup() {
     const [isActive, setActive] = useState(null);
+    const [enabledUntil, setEnabledUntil] = useState(0);
     const [blockedHosts, setBlockedHosts] = useState([]);
     const [currentHost, setCurrentHost] = useState("");
 
     useEffect(() => {
-        browser.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
             const url = new URL(tabs[0].url);
 
             if(url.protocol  == 'http:' || url.protocol == 'https:') {
-                const host = url.host;
+                const host = removeSubdomain(url.host);
                 setCurrentHost(host);
             }            
         });
     }, [])
 
     useEffect(() => {
-        browser.storage.local.get("active").then(local => setActive(local.active || false))
+        chrome.storage.local.get("enabledUntil", local => setEnabledUntil(local.enabledUntil || 0))
+    }, []);
+
+    useEffect(() => {
+        chrome.storage.local.get("active", local => setActive(local.active || false))
     }, []);
 
     useEffect(() => { 
-        browser.storage.sync.get("blockedHosts").then(sync => setBlockedHosts(sync.blockedHosts || []));
+        chrome.storage.sync.get("blockedHosts", sync => setBlockedHosts(sync.blockedHosts || []));
     }, []);
 
     useEffect(() => { 
@@ -98,27 +117,31 @@ function Popup() {
             if('active' in data) {
                 setActive(data.active.newValue); 
             }
+            if('enabledUntil' in data) {
+                setEnabledUntil(data.enabledUntil.newValue);             }
 
             if('blockedHosts' in data) {
                 setBlockedHosts(data.blockedHosts.newValue); 
             }
         } 
 
-        browser.storage.onChanged.addListener(handleStatusChange)
+        chrome.storage.onChanged.addListener(handleStatusChange)
         return () => {
-            browser.storage.onChanged.removeListener(handleStatusChange); 
+            chrome.storage.onChanged.removeListener(handleStatusChange); 
         }; 
     }, []);
 
     return html`
     <header>
-        <${ToggleActive} active=${isActive} />
+        <${ToggleActive} active=${isActive} enabledUntil=${enabledUntil} />
     </header>
+
     <section class="list">                
       <${HostList} hosts=${blockedHosts}/>
     </section>
+
     <footer>
-        <${AddCurrent} hosts=${blockedHosts} currentHost=${currentHost}/>
+      <${AddCurrent} hosts=${blockedHosts} currentHost=${currentHost}/>
     </footer>
     `
 }
